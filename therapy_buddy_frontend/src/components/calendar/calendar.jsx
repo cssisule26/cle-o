@@ -2,32 +2,27 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlusIcon, CheckIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { calendarAPI } from "../../api/client";
+import { useLang } from "../../context/LanguageContext";
 
 const EVENT_TYPES = ["exam", "assignment", "class", "other"];
 const TYPE_STYLES = {
-  exam: "bg-red-100 text-red-600 border-red-200",
+  exam:       "bg-red-100 text-red-600 border-red-200",
   assignment: "bg-amber-100 text-amber-600 border-amber-200",
-  class: "bg-blue-100 text-blue-600 border-blue-200",
-  other: "bg-stone-100 text-stone-500 border-stone-200",
+  class:      "bg-blue-100 text-blue-600 border-blue-200",
+  other:      "bg-stone-100 text-stone-500 border-stone-200",
 };
 
 export default function Calendar() {
-  const [events, setEvents] = useState([]);
-  const [upcoming, setUpcoming] = useState(null);
+  const { t } = useLang();
+  const [events, setEvents]     = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: "", event_type: "assignment", subject: "", due_date: "", due_time: "", notes: "" });
-  const [loading, setLoading] = useState(false);
+  const [form, setForm]         = useState({ title: "", event_type: "assignment", subject: "", due_date: "", due_time: "", notes: "" });
+  const [loading, setLoading]   = useState(false);
 
-  useEffect(() => {
-    fetchEvents();
-    calendarAPI.getUpcoming(14).then(r => setUpcoming(r.data)).catch(() => {});
-  }, []);
+  useEffect(() => { fetchEvents(); }, []);
 
   const fetchEvents = async () => {
-    try {
-      const res = await calendarAPI.getAll();
-      setEvents(res.data);
-    } catch {}
+    try { const res = await calendarAPI.getAll(); setEvents(res.data); } catch {}
   };
 
   const handleSave = async () => {
@@ -38,39 +33,31 @@ export default function Calendar() {
       setShowForm(false);
       setForm({ title: "", event_type: "assignment", subject: "", due_date: "", due_time: "", notes: "" });
       fetchEvents();
-    } catch (e) {
-      alert(e.response?.data?.detail || "Couldn't save event");
-    }
+    } catch (e) { alert(e.response?.data?.detail || "Couldn't save event"); }
     setLoading(false);
   };
 
   const handleComplete = async (id) => {
-    try {
-      await calendarAPI.complete(id);
-      setEvents(ev => ev.map(e => e.id === id ? { ...e, completed: true } : e));
-    } catch {}
+    try { await calendarAPI.complete(id); setEvents(ev => ev.map(e => e.id === id ? { ...e, completed: true } : e)); } catch {}
   };
 
   const handleDelete = async (id) => {
-    try {
-      await calendarAPI.delete(id);
-      setEvents(ev => ev.filter(e => e.id !== id));
-    } catch {}
+    try { await calendarAPI.delete(id); setEvents(ev => ev.filter(e => e.id !== id)); } catch {}
   };
 
   const daysUntil = (dateStr) => {
     const diff = Math.ceil((new Date(dateStr) - new Date()) / (1000 * 60 * 60 * 24));
-    if (diff === 0) return "Today";
-    if (diff === 1) return "Tomorrow";
-    return `${diff} days`;
+    if (diff === 0) return t("today") || "Today";
+    if (diff === 1) return t("tomorrow") || "Tomorrow";
+    return `${diff} ${t("days") || "days"}`;
   };
 
   return (
     <div className="flex flex-col h-full overflow-y-auto px-6 py-8">
       <div className="flex justify-between items-start mb-6">
         <div>
-          <h2 className="font-display text-2xl mb-1">Calendar</h2>
-          <p className="text-stone-400 text-sm font-body">Exams, assignments & classes</p>
+          <h2 className="font-display text-2xl mb-1">{t("calendar_title")}</h2>
+          <p className="text-stone-400 text-sm font-body">{t("Exams, assignments & classes")}</p>
         </div>
         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
           onClick={() => setShowForm(!showForm)}
@@ -79,26 +66,26 @@ export default function Calendar() {
         </motion.button>
       </div>
 
-      {/* Add form */}
       <AnimatePresence>
         {showForm && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }} className="overflow-hidden mb-6">
             <div className="bg-white border border-cream-200 rounded-2xl p-5 flex flex-col gap-3">
-              <h3 className="font-display text-lg">Add event</h3>
-              {/* Type */}
+              <h3 className="font-display text-lg">{t("add_event") || "Add event"}</h3>
               <div className="flex gap-2 flex-wrap">
-                {EVENT_TYPES.map(t => (
-                  <button key={t} onClick={() => setForm(f => ({ ...f, event_type: t }))}
-                    className={`px-3 py-1.5 rounded-full text-xs font-body border capitalize transition-all ${form.event_type === t ? TYPE_STYLES[t] : "border-cream-300 text-stone-400"}`}>
-                    {t}
+                {EVENT_TYPES.map(type => (
+                  <button key={type} onClick={() => setForm(f => ({ ...f, event_type: type }))}
+                    className={`px-3 py-1.5 rounded-full text-xs font-body border capitalize transition-all ${form.event_type === type ? TYPE_STYLES[type] : "border-cream-300 text-stone-400"}`}>
+                    {t(type) || type}
                   </button>
                 ))}
               </div>
               <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                placeholder="Title" className="w-full px-4 py-3 rounded-xl border border-cream-300 font-body text-sm focus:outline-none focus:border-sage-400" />
+                placeholder={t("title") || "Title"}
+                className="w-full px-4 py-3 rounded-xl border border-cream-300 font-body text-sm focus:outline-none focus:border-sage-400" />
               <input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
-                placeholder="Subject (optional)" className="w-full px-4 py-3 rounded-xl border border-cream-300 font-body text-sm focus:outline-none focus:border-sage-400" />
+                placeholder={t("subject_optional") || "Subject (optional)"}
+                className="w-full px-4 py-3 rounded-xl border border-cream-300 font-body text-sm focus:outline-none focus:border-sage-400" />
               <div className="flex gap-3">
                 <input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
                   className="flex-1 px-4 py-3 rounded-xl border border-cream-300 font-body text-sm focus:outline-none focus:border-sage-400" />
@@ -108,19 +95,18 @@ export default function Calendar() {
               <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
                 onClick={handleSave} disabled={loading || !form.title || !form.due_date}
                 className="w-full py-3 rounded-xl bg-sage-600 text-white font-body text-sm font-medium disabled:opacity-50">
-                {loading ? "Saving..." : "Add to calendar"}
+                {loading ? t("saving") : t("add_to_calendar") || "Add to calendar"}
               </motion.button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Events list */}
       <div className="flex flex-col gap-3">
         {events.length === 0 && !showForm && (
           <div className="text-center py-16">
-            <p className="font-display text-xl text-stone-300 mb-2">Nothing scheduled</p>
-            <p className="text-stone-400 text-sm font-body">Tap + to add an exam or assignment</p>
+            <p className="font-display text-xl text-stone-300 mb-2">{t("nothing_scheduled") || "Nothing scheduled"}</p>
+            <p className="text-stone-400 text-sm font-body">{t("tap_add_event") || "Tap + to add an exam or assignment"}</p>
           </div>
         )}
         {events.map(e => (

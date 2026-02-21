@@ -1,21 +1,24 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MusicalNoteIcon, StopIcon, PlayIcon } from "@heroicons/react/24/outline";
+import { useLang } from "../../context/LanguageContext";
 
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
-const STREAM_ENDPOINT = "https://api.elevenlabs.io/v1/music/stream";
+const STREAM_ENDPOINT  = "https://api.elevenlabs.io/v1/music/stream";
 const COMPOSE_ENDPOINT = "https://api.elevenlabs.io/v1/music";
 
-const MOOD_PRESETS = [
-  { label: "Calm & focused", emoji: "🧘", prompt: "Soft ambient piano with gentle pads, slow breathing rhythm, perfect for studying. Minimal, soothing, 60 bpm." },
-  { label: "Stressed",       emoji: "😮‍💨", prompt: "Gentle lo-fi acoustic guitar with warm vinyl texture, slow calming tempo, grounding like a quiet afternoon." },
-  { label: "Motivated",      emoji: "💪", prompt: "Uplifting indie pop instrumental, bright acoustic guitar, forward momentum, positive energy, 100 bpm." },
-  { label: "Anxious",        emoji: "😟", prompt: "Slow ambient music with soft nature sounds, gentle water, warm drones to reduce anxiety and bring calm." },
-  { label: "Happy",          emoji: "😊", prompt: "Bright cheerful acoustic folk, light percussion, warm guitar fingerpicking, uplifting sunny day vibes." },
-  { label: "Tired",          emoji: "😴", prompt: "Dreamy slow ambient, soft synth pads, gentle sleep-inducing tones, very quiet and warm, 50 bpm." },
-];
+const MOOD_PROMPTS = {
+  calm_focused: "Soft ambient piano with gentle pads, slow breathing rhythm, perfect for studying. Minimal, soothing, 60 bpm.",
+  stressed:     "Gentle lo-fi acoustic guitar with warm vinyl texture, slow calming tempo, grounding like a quiet afternoon.",
+  motivated:    "Uplifting indie pop instrumental, bright acoustic guitar, forward momentum, positive energy, 100 bpm.",
+  anxious:      "Slow ambient music with soft nature sounds, gentle water, warm drones to reduce anxiety and bring calm.",
+  happy:        "Bright cheerful acoustic folk, light percussion, warm guitar fingerpicking, uplifting sunny day vibes.",
+  tired:        "Dreamy slow ambient, soft synth pads, gentle sleep-inducing tones, very quiet and warm, 50 bpm.",
+};
+const MOOD_EMOJIS = { calm_focused: "🧘", stressed: "😮‍💨", motivated: "💪", anxious: "😟", happy: "😊", tired: "😴" };
 
 export default function MusicGen() {
+  const { t } = useLang();
   const [prompt, setPrompt]       = useState("");
   const [loading, setLoading]     = useState(false);
   const [playing, setPlaying]     = useState(false);
@@ -31,12 +34,10 @@ export default function MusicGen() {
 
   const generate = async (customPrompt) => {
     const finalPrompt = customPrompt || prompt;
-    if (!finalPrompt.trim()) { setError("Describe the music you want first."); return; }
-    if (!ELEVENLABS_API_KEY) { setError("Add VITE_ELEVENLABS_API_KEY to your .env file and restart."); return; }
+    if (!finalPrompt.trim()) { setError(t("music_placeholder")); return; }
+    if (!ELEVENLABS_API_KEY) { setError("Add VITE_ELEVENLABS_API_KEY to .env and restart."); return; }
 
-    setLoading(true);
-    setError("");
-    setGenerated(false);
+    setLoading(true); setError(""); setGenerated(false);
     stopCurrent();
     if (audioUrl) { URL.revokeObjectURL(audioUrl); setAudioUrl(null); }
 
@@ -58,16 +59,14 @@ export default function MusicGen() {
         const blob = await res.blob();
         if (blob.size < 1000) continue;
         const url = URL.createObjectURL(blob);
-        setAudioUrl(url);
-        setGenerated(true);
+        setAudioUrl(url); setGenerated(true);
         const audio = new Audio(url);
         audioRef.current = audio;
         audio.onplay  = () => setPlaying(true);
         audio.onpause = () => setPlaying(false);
         audio.onended = () => { setPlaying(false); audioRef.current = null; };
         audio.play().catch(() => {});
-        setLoading(false);
-        return;
+        setLoading(false); return;
       } catch (e) {
         if (e.message?.includes("Failed to fetch")) { setError("Network error."); setLoading(false); return; }
         continue;
@@ -90,10 +89,14 @@ export default function MusicGen() {
     }
   };
 
+  const MOOD_PRESETS = Object.keys(MOOD_PROMPTS).map(key => ({
+    key, emoji: MOOD_EMOJIS[key], label: t(key), prompt: MOOD_PROMPTS[key],
+  }));
+
   return (
     <div className="flex flex-col h-full overflow-y-auto px-6 py-8">
-      <h2 className="font-display text-2xl mb-1">Music for your mood</h2>
-      <p className="text-stone-400 text-sm font-body mb-8">Tell me how you feel — I'll generate music just for you.</p>
+      <h2 className="font-display text-2xl mb-1">{t("music_mood")}</h2>
+      <p className="text-stone-400 text-sm font-body mb-8">{t("music_desc")}</p>
 
       {!ELEVENLABS_API_KEY && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-6">
@@ -103,10 +106,10 @@ export default function MusicGen() {
       )}
 
       <div className="mb-6">
-        <p className="text-xs font-mono text-stone-400 uppercase tracking-widest mb-3">Quick moods</p>
+        <p className="text-xs font-mono text-stone-400 uppercase tracking-widest mb-3">{t("quick_moods")}</p>
         <div className="grid grid-cols-3 gap-2">
           {MOOD_PRESETS.map(p => (
-            <motion.button key={p.label} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+            <motion.button key={p.key} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               onClick={() => { setPrompt(p.prompt); generate(p.prompt); }}
               disabled={loading}
               className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl border border-cream-200 bg-white hover:border-sage-300 hover:bg-sage-50 transition-all disabled:opacity-40">
@@ -118,16 +121,15 @@ export default function MusicGen() {
       </div>
 
       <div className="mb-4">
-        <p className="text-xs font-mono text-stone-400 uppercase tracking-widest mb-3">Or describe it yourself</p>
+        <p className="text-xs font-mono text-stone-400 uppercase tracking-widest mb-3">{t("describe_yourself")}</p>
         <textarea value={prompt} onChange={e => { setPrompt(e.target.value); setError(""); }}
-          placeholder="e.g. I'm feeling overwhelmed, I want something soft and calming..."
-          rows={3}
+          placeholder={t("music_placeholder")} rows={3}
           className="w-full px-4 py-3 rounded-xl border border-cream-300 bg-white font-body text-sm focus:outline-none focus:border-sage-400 transition-colors resize-none mb-3" />
         <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
           onClick={() => generate()} disabled={loading || !prompt.trim()}
           className="w-full py-4 rounded-xl bg-sage-600 text-white font-body font-medium flex items-center justify-center gap-2 disabled:opacity-40">
           <MusicalNoteIcon className="w-5 h-5" />
-          {loading ? "Composing..." : "Generate music"}
+          {loading ? t("composing") : t("generate_music")}
         </motion.button>
       </div>
 
@@ -151,7 +153,7 @@ export default function MusicGen() {
                   transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.1 }} />
               ))}
             </div>
-            <p className="text-stone-400 font-body text-sm">Composing your music...</p>
+            <p className="text-stone-400 font-body text-sm">{t("composing_music")}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -163,9 +165,7 @@ export default function MusicGen() {
             <div className="flex gap-1 items-end h-14">
               {Array.from({ length: 14 }).map((_, i) => (
                 <motion.div key={i} className="w-2 rounded-full bg-sage-400"
-                  animate={playing
-                    ? { height: [`${8+(i%3)*8}px`,`${24+(i%5)*8}px`,`${8+(i%3)*8}px`] }
-                    : { height: "8px" }}
+                  animate={playing ? { height: [`${8+(i%3)*8}px`,`${24+(i%5)*8}px`,`${8+(i%3)*8}px`] } : { height: "8px" }}
                   transition={{ duration: 0.5+(i%3)*0.15, repeat: Infinity, delay: i*0.06 }} />
               ))}
             </div>
@@ -175,8 +175,8 @@ export default function MusicGen() {
               className="w-16 h-16 rounded-full bg-sage-600 flex items-center justify-center shadow-lg shadow-sage-200">
               {playing ? <StopIcon className="w-6 h-6 text-white" /> : <PlayIcon className="w-6 h-6 text-white" />}
             </motion.button>
-            <p className="text-xs text-stone-300 font-mono">{playing ? "Now playing · 30s" : "Paused"}</p>
-            <button onClick={() => generate()} className="text-xs text-sage-500 font-body underline underline-offset-2">Generate another</button>
+            <p className="text-xs text-stone-300 font-mono">{playing ? t("now_playing") : t("paused")}</p>
+            <button onClick={() => generate()} className="text-xs text-sage-500 font-body underline underline-offset-2">{t("generate_another")}</button>
           </motion.div>
         )}
       </AnimatePresence>

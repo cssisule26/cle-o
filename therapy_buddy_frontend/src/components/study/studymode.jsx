@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlayIcon, StopIcon, CheckIcon } from "@heroicons/react/24/outline";
 import { studyAPI } from "../../api/client";
+import { useLang } from "../../context/LanguageContext";
 
 const DURATIONS = [30, 60, 90];
 
@@ -11,10 +12,8 @@ function playChime() {
     [523.25, 659.25, 783.99].forEach((freq, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = freq;
-      osc.type = "sine";
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = freq; osc.type = "sine";
       gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.3);
       gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + i * 0.3 + 0.05);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.3 + 1.2);
@@ -25,9 +24,10 @@ function playChime() {
 }
 
 export default function StudyMode() {
+  const { t } = useLang();
   const [selectedDuration, setSelectedDuration] = useState(30);
   const [subject, setSubject] = useState("");
-  const [phase, setPhase] = useState("setup"); // setup | running | checkin | done
+  const [phase, setPhase] = useState("setup");
   const [session, setSession] = useState(null);
   const [timeLeft, setTimeLeft] = useState(0);
   const [leoMessage, setLeoMessage] = useState("");
@@ -37,54 +37,37 @@ export default function StudyMode() {
   const intervalRef = useRef(null);
   const startTimeRef = useRef(null);
 
-  // Countdown timer
   useEffect(() => {
     if (phase !== "running") return;
     intervalRef.current = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
       const remaining = selectedDuration * 60 - elapsed;
-      if (remaining <= 0) {
-        clearInterval(intervalRef.current);
-        setTimeLeft(0);
-        handleTimerComplete();
-      } else {
-        setTimeLeft(remaining);
-      }
+      if (remaining <= 0) { clearInterval(intervalRef.current); setTimeLeft(0); handleTimerComplete(); }
+      else setTimeLeft(remaining);
     }, 1000);
     return () => clearInterval(intervalRef.current);
   }, [phase]);
 
   const handleStart = async () => {
-    if (!subject.trim()) { setError("Add a subject first!"); return; }
-    setError("");
-    setLoading(true);
+    if (!subject.trim()) { setError(t("subject_placeholder")); return; }
+    setError(""); setLoading(true);
     try {
-      const res = await studyAPI.start({
-        planned_minutes: selectedDuration,
-        subject: subject.trim(),
-      });
+      const res = await studyAPI.start({ planned_minutes: selectedDuration, subject: subject.trim() });
       setSession(res.data);
       setTimeLeft(selectedDuration * 60);
       startTimeRef.current = Date.now();
       setPhase("running");
-    } catch (e) {
-      setError("Couldn't start session. Try again.");
-    }
+    } catch { setError("Couldn't start session."); }
     setLoading(false);
   };
 
   const handleTimerComplete = async () => {
     playChime();
-    if (!session) { setPhase("checkin"); return; }
-    try {
-      const res = await studyAPI.end({
-        session_id: session.id,
-        duration_minutes: selectedDuration,
-        completed: true,
-      });
-      setLeoMessage(res.data?.leo_prompt || "Amazing work! How did it go?");
-    } catch {
-      setLeoMessage("Amazing work! How did it go?");
+    if (session) {
+      try {
+        const res = await studyAPI.end({ session_id: session.id, duration_minutes: selectedDuration, completed: true });
+        setLeoMessage(res.data?.leo_prompt || t("great_work"));
+      } catch { setLeoMessage(t("great_work")); }
     }
     setPhase("checkin");
   };
@@ -94,148 +77,96 @@ export default function StudyMode() {
     const elapsed = Math.floor((Date.now() - startTimeRef.current) / 60000);
     if (session) {
       try {
-        const res = await studyAPI.end({
-          session_id: session.id,
-          duration_minutes: elapsed,
-          completed: false,
-        });
-        setLeoMessage(res.data?.leo_prompt || `You studied for ${elapsed} minutes. That still counts!`);
-      } catch {
-        setLeoMessage(`You studied for ${elapsed} minutes. That still counts!`);
-      }
+        const res = await studyAPI.end({ session_id: session.id, duration_minutes: elapsed, completed: false });
+        setLeoMessage(res.data?.leo_prompt || t("great_work"));
+      } catch { setLeoMessage(t("great_work")); }
     }
     setPhase("checkin");
   };
 
   const handleCheckin = async () => {
     if (session) {
-      try {
-        await studyAPI.checkin(session.id, {
-          focus_rating: ratings.focus,
-          energy_rating: ratings.energy,
-          post_notes: ratings.notes,
-        });
-      } catch {}
+      try { await studyAPI.checkin(session.id, { focus_rating: ratings.focus, energy_rating: ratings.energy, post_notes: ratings.notes }); } catch {}
     }
     setPhase("done");
   };
 
   const handleReset = () => {
     clearInterval(intervalRef.current);
-    setPhase("setup");
-    setSession(null);
-    setTimeLeft(0);
-    setLeoMessage("");
-    setRatings({ focus: 7, energy: 7, notes: "" });
-    setError("");
+    setPhase("setup"); setSession(null); setTimeLeft(0);
+    setLeoMessage(""); setRatings({ focus: 7, energy: 7, notes: "" }); setError("");
   };
 
-  const formatTime = (secs) => {
-    const m = Math.floor(secs / 60).toString().padStart(2, "0");
-    const s = (secs % 60).toString().padStart(2, "0");
-    return `${m}:${s}`;
-  };
-
-  const progress = phase === "running"
-    ? ((selectedDuration * 60 - timeLeft) / (selectedDuration * 60)) * 100
-    : 0;
-
+  const formatTime = (secs) => `${Math.floor(secs/60).toString().padStart(2,"0")}:${(secs%60).toString().padStart(2,"0")}`;
+  const progress = phase === "running" ? ((selectedDuration*60-timeLeft)/(selectedDuration*60))*100 : 0;
   const circumference = 2 * Math.PI * 54;
 
   return (
     <div className="flex flex-col h-full overflow-y-auto px-6 py-8">
-      <h2 className="font-display text-2xl mb-1">Study Timer</h2>
-      <p className="text-stone-400 text-sm font-body mb-8">Focus, then rest.</p>
+      <h2 className="font-display text-2xl mb-1">{t("study_timer")}</h2>
+      <p className="text-stone-400 text-sm font-body mb-8">{t("focus_rest")}</p>
 
       <AnimatePresence mode="wait">
-
-        {/* ── SETUP ── */}
         {phase === "setup" && (
           <motion.div key="setup" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="mb-6">
-              <p className="text-xs font-mono text-stone-400 uppercase tracking-widest mb-3">Subject</p>
+              <p className="text-xs font-mono text-stone-400 uppercase tracking-widest mb-3">{t("subject")}</p>
               <input value={subject} onChange={e => { setSubject(e.target.value); setError(""); }}
-                placeholder="e.g. Biology, Math, History..."
+                placeholder={t("subject_placeholder")}
                 className="w-full px-4 py-3 rounded-xl border border-cream-300 bg-white font-body text-sm focus:outline-none focus:border-sage-400 transition-colors" />
             </div>
-
             <div className="mb-8">
-              <p className="text-xs font-mono text-stone-400 uppercase tracking-widest mb-3">Duration</p>
+              <p className="text-xs font-mono text-stone-400 uppercase tracking-widest mb-3">{t("duration")}</p>
               <div className="flex gap-3">
                 {DURATIONS.map(d => (
                   <motion.button key={d} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                     onClick={() => setSelectedDuration(d)}
                     className={`flex-1 py-4 rounded-xl font-body font-medium text-sm transition-all ${
-                      selectedDuration === d
-                        ? "bg-sage-600 text-white shadow-lg shadow-sage-200"
-                        : "bg-white border border-cream-200 text-stone-500 hover:border-sage-300"
-                    }`}>
-                    {d} min
+                      selectedDuration === d ? "bg-sage-600 text-white shadow-lg shadow-sage-200" : "bg-white border border-cream-200 text-stone-500"}`}>
+                    {d} {t("min")}
                   </motion.button>
                 ))}
               </div>
             </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
-                <p className="text-red-600 text-sm font-body">{error}</p>
-              </div>
-            )}
-
+            {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4"><p className="text-red-600 text-sm font-body">{error}</p></div>}
             <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
               onClick={handleStart} disabled={loading}
               className="w-full py-4 rounded-xl bg-sage-600 text-white font-body font-medium flex items-center justify-center gap-2 disabled:opacity-50">
               <PlayIcon className="w-5 h-5" />
-              {loading ? "Starting..." : "Start session"}
+              {loading ? t("starting") : t("start_session")}
             </motion.button>
           </motion.div>
         )}
 
-        {/* ── RUNNING ── */}
         {phase === "running" && (
-          <motion.div key="running" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center">
+          <motion.div key="running" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center">
             <p className="font-body text-stone-500 text-sm mb-8">{subject}</p>
-
-            {/* Circular timer */}
             <div className="relative w-40 h-40 mb-8">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
                 <circle cx="60" cy="60" r="54" fill="none" stroke="#e8e0cc" strokeWidth="8" />
                 <circle cx="60" cy="60" r="54" fill="none" stroke="#5a845f" strokeWidth="8"
-                  strokeDasharray={circumference}
-                  strokeDashoffset={circumference - (progress / 100) * circumference}
-                  strokeLinecap="round"
-                  style={{ transition: "stroke-dashoffset 1s linear" }} />
+                  strokeDasharray={circumference} strokeDashoffset={circumference-(progress/100)*circumference}
+                  strokeLinecap="round" style={{ transition: "stroke-dashoffset 1s linear" }} />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="font-display text-3xl text-stone-700">{formatTime(timeLeft)}</span>
               </div>
             </div>
-
-            <p className="text-stone-400 text-sm font-body mb-8">Stay focused — you've got this</p>
-
+            <p className="text-stone-400 text-sm font-body mb-8">{t("stay_focused")}</p>
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
               onClick={handleQuit}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl border border-cream-300 text-stone-500 font-body text-sm hover:border-red-200 hover:text-red-400 transition-all">
-              <StopIcon className="w-4 h-4" />
-              End early
+              className="flex items-center gap-2 px-6 py-3 rounded-xl border border-cream-300 text-stone-500 font-body text-sm hover:text-red-400 transition-all">
+              <StopIcon className="w-4 h-4" /> {t("end_early")}
             </motion.button>
           </motion.div>
         )}
 
-        {/* ── CHECK-IN ── */}
         {phase === "checkin" && (
-          <motion.div key="checkin" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col gap-5">
-            {leoMessage && (
-              <div className="bg-sage-50 border border-sage-200 rounded-2xl px-5 py-4">
-                <p className="font-body text-stone-700">{leoMessage}</p>
-              </div>
-            )}
-
+          <motion.div key="checkin" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-5">
+            {leoMessage && <div className="bg-sage-50 border border-sage-200 rounded-2xl px-5 py-4"><p className="font-body text-stone-700">{leoMessage}</p></div>}
             {[
-              { key: "focus", label: "Focus rating", low: "Scattered", high: "Locked in" },
-              { key: "energy", label: "Energy level", low: "Drained", high: "Energized" },
+              { key: "focus", label: t("focus_rating"), low: t("scattered"), high: t("locked_in") },
+              { key: "energy", label: t("energy_level"), low: t("drained"), high: t("energized") },
             ].map(r => (
               <div key={r.key}>
                 <div className="flex justify-between mb-2">
@@ -251,36 +182,31 @@ export default function StudyMode() {
                 </div>
               </div>
             ))}
-
             <textarea value={ratings.notes} onChange={e => setRatings(v => ({ ...v, notes: e.target.value }))}
-              placeholder="Any notes? (optional)"
-              rows={2} className="w-full px-4 py-3 rounded-xl border border-cream-300 bg-white font-body text-sm focus:outline-none focus:border-sage-400 resize-none" />
-
+              placeholder={t("notes_optional")} rows={2}
+              className="w-full px-4 py-3 rounded-xl border border-cream-300 bg-white font-body text-sm focus:outline-none focus:border-sage-400 resize-none" />
             <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
               onClick={handleCheckin}
               className="w-full py-4 rounded-xl bg-sage-600 text-white font-body font-medium flex items-center justify-center gap-2">
-              <CheckIcon className="w-5 h-5" /> Save & finish
+              <CheckIcon className="w-5 h-5" /> {t("save_finish")}
             </motion.button>
           </motion.div>
         )}
 
-        {/* ── DONE ── */}
         {phase === "done" && (
-          <motion.div key="done" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center text-center py-12">
+          <motion.div key="done" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center text-center py-12">
             <div className="w-16 h-16 rounded-full bg-sage-100 flex items-center justify-center mb-5">
               <CheckIcon className="w-8 h-8 text-sage-600" />
             </div>
-            <h3 className="font-display text-2xl mb-2">Session complete!</h3>
-            <p className="text-stone-400 font-body text-sm mb-8">Great work. Take a well-earned break.</p>
+            <h3 className="font-display text-2xl mb-2">{t("session_complete")}</h3>
+            <p className="text-stone-400 font-body text-sm mb-8">{t("great_work")}</p>
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
               onClick={handleReset}
               className="px-8 py-3 rounded-xl bg-sage-600 text-white font-body font-medium">
-              Start another
+              {t("start_another")}
             </motion.button>
           </motion.div>
         )}
-
       </AnimatePresence>
     </div>
   );

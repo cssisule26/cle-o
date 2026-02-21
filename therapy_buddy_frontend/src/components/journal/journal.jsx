@@ -2,36 +2,29 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlusIcon, LockClosedIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { journalAPI } from "../../api/client";
+import { useLang } from "../../context/LanguageContext";
 
 const MOOD_TAGS = ["happy", "anxious", "tired", "motivated", "sad", "grateful", "stressed", "calm"];
 
 export default function Journal() {
-  const [entries, setEntries] = useState([]);
-  const [phase, setPhase] = useState("list"); // list | write | pin
+  const { t } = useLang();
+  const [entries, setEntries]       = useState([]);
+  const [phase, setPhase]           = useState("list");
   const [pinVerified, setPinVerified] = useState(false);
-  const [pin, setPin] = useState("");
-  const [pinError, setPinError] = useState("");
-  const [form, setForm] = useState({ title: "", content: "", mood_tag: "", is_private: false });
-  const [loading, setLoading] = useState(false);
+  const [pin, setPin]               = useState("");
+  const [pinError, setPinError]     = useState("");
+  const [form, setForm]             = useState({ title: "", content: "", mood_tag: "", is_private: false });
+  const [loading, setLoading]       = useState(false);
 
   useEffect(() => { fetchEntries(); }, [pinVerified]);
 
   const fetchEntries = async () => {
-    try {
-      const res = await journalAPI.getAll(pinVerified);
-      setEntries(res.data);
-    } catch {}
+    try { const res = await journalAPI.getAll(pinVerified); setEntries(res.data); } catch {}
   };
 
   const handleVerifyPin = async () => {
-    try {
-      await journalAPI.verifyPin(pin);
-      setPinVerified(true);
-      setPhase("list");
-      setPinError("");
-    } catch {
-      setPinError("Incorrect PIN");
-    }
+    try { await journalAPI.verifyPin(pin); setPinVerified(true); setPhase("list"); setPinError(""); }
+    catch { setPinError(t("incorrect_pin") || "Incorrect PIN"); }
   };
 
   const handleSave = async () => {
@@ -40,25 +33,21 @@ export default function Journal() {
     try {
       await journalAPI.create(form);
       setForm({ title: "", content: "", mood_tag: "", is_private: false });
-      setPhase("list");
-      fetchEntries();
+      setPhase("list"); fetchEntries();
     } catch {}
     setLoading(false);
   };
 
   const handleDelete = async (id) => {
-    try {
-      await journalAPI.delete(id);
-      setEntries(e => e.filter(x => x.id !== id));
-    } catch {}
+    try { await journalAPI.delete(id); setEntries(e => e.filter(x => x.id !== id)); } catch {}
   };
 
   return (
     <div className="flex flex-col h-full overflow-y-auto px-6 py-8">
       <div className="flex justify-between items-start mb-6">
         <div>
-          <h2 className="font-display text-2xl mb-1">Journal</h2>
-          <p className="text-stone-400 text-sm font-body">Your private space to reflect</p>
+          <h2 className="font-display text-2xl mb-1">{t("journal_title")}</h2>
+          <p className="text-stone-400 text-sm font-body">{t("Your private space to reflect")}</p>
         </div>
         <div className="flex gap-2">
           <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
@@ -78,35 +67,37 @@ export default function Journal() {
         {phase === "pin" && (
           <motion.div key="pin" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             className="bg-white border border-cream-200 rounded-2xl p-6 mb-6">
-            <h3 className="font-display text-lg mb-4">{pinVerified ? "PIN verified ✓" : "Enter journal PIN"}</h3>
+            <h3 className="font-display text-lg mb-4">{pinVerified ? "PIN verified ✓" : t("enter_pin") || "Enter journal PIN"}</h3>
             {!pinVerified && <>
               <input type="password" maxLength={6} value={pin} onChange={e => setPin(e.target.value)}
                 placeholder="4–6 digit PIN" className="w-full px-4 py-3 rounded-xl border border-cream-300 font-mono text-center text-xl tracking-widest focus:outline-none focus:border-sage-400 mb-3" />
               {pinError && <p className="text-red-400 text-sm text-center mb-3">{pinError}</p>}
-              <button onClick={handleVerifyPin} className="w-full py-3 rounded-xl bg-sage-600 text-white font-body text-sm">Unlock</button>
+              <button onClick={handleVerifyPin} className="w-full py-3 rounded-xl bg-sage-600 text-white font-body text-sm">
+                {t("unlock") || "Unlock"}
+              </button>
             </>}
           </motion.div>
         )}
 
         {phase === "write" && (
-          <motion.div key="write" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col gap-4">
+          <motion.div key="write" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4">
             <div className="flex justify-between items-center">
-              <h3 className="font-display text-lg">New entry</h3>
+              <h3 className="font-display text-lg">{t("new_entry") || "New entry"}</h3>
               <button onClick={() => setPhase("list")}><XMarkIcon className="w-5 h-5 text-stone-400" /></button>
             </div>
             <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-              placeholder="Title (optional)" className="w-full px-4 py-3 rounded-xl border border-cream-300 bg-white font-body text-sm focus:outline-none focus:border-sage-400" />
+              placeholder={t("title_optional") || "Title (optional)"}
+              className="w-full px-4 py-3 rounded-xl border border-cream-300 bg-white font-body text-sm focus:outline-none focus:border-sage-400" />
             <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
-              placeholder="What's on your mind..." rows={6}
-              className="w-full px-4 py-3 rounded-xl border border-cream-300 bg-white font-body text-sm focus:outline-none focus:border-sage-400 resize-none" />
+              placeholder={t("whats_on_mind") || "What's on your mind..."}
+              rows={6} className="w-full px-4 py-3 rounded-xl border border-cream-300 bg-white font-body text-sm focus:outline-none focus:border-sage-400 resize-none" />
             <div>
-              <p className="text-xs font-mono text-stone-400 uppercase tracking-widest mb-2">Mood</p>
+              <p className="text-xs font-mono text-stone-400 uppercase tracking-widest mb-2">{t("mood")}</p>
               <div className="flex flex-wrap gap-2">
-                {MOOD_TAGS.map(t => (
-                  <button key={t} onClick={() => setForm(f => ({ ...f, mood_tag: f.mood_tag === t ? "" : t }))}
-                    className={`px-3 py-1.5 rounded-full text-xs font-body transition-all ${form.mood_tag === t ? "bg-sage-600 text-white" : "bg-cream-200 text-stone-500 hover:bg-cream-300"}`}>
-                    {t}
+                {MOOD_TAGS.map(tag => (
+                  <button key={tag} onClick={() => setForm(f => ({ ...f, mood_tag: f.mood_tag === tag ? "" : tag }))}
+                    className={`px-3 py-1.5 rounded-full text-xs font-body transition-all ${form.mood_tag === tag ? "bg-sage-600 text-white" : "bg-cream-200 text-stone-500 hover:bg-cream-300"}`}>
+                    {tag}
                   </button>
                 ))}
               </div>
@@ -116,24 +107,23 @@ export default function Journal() {
                 onChange={e => setForm(f => ({ ...f, is_private: e.target.checked }))}
                 className="accent-sage-600" />
               <span className="text-sm font-body text-stone-500 flex items-center gap-1">
-                <LockClosedIcon className="w-3.5 h-3.5" /> Private (PIN protected)
+                <LockClosedIcon className="w-3.5 h-3.5" /> {t("private_pin") || "Private (PIN protected)"}
               </span>
             </label>
             <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
               onClick={handleSave} disabled={loading || !form.content.trim()}
               className="w-full py-4 rounded-xl bg-sage-600 text-white font-body font-medium disabled:opacity-50">
-              {loading ? "Saving..." : "Save entry"}
+              {loading ? t("saving") : t("save_entry") || "Save entry"}
             </motion.button>
           </motion.div>
         )}
 
         {phase === "list" && (
-          <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="flex flex-col gap-3">
+          <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
             {entries.length === 0 && (
               <div className="text-center py-16">
-                <p className="font-display text-xl text-stone-300 mb-2">No entries yet</p>
-                <p className="text-stone-400 text-sm font-body">Tap + to write your first</p>
+                <p className="font-display text-xl text-stone-300 mb-2">{t("no_entries") || "No entries yet"}</p>
+                <p className="text-stone-400 text-sm font-body">{t("tap_write") || "Tap + to write your first"}</p>
               </div>
             )}
             {entries.map(e => (

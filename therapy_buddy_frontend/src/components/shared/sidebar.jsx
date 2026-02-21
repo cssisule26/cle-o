@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
+import { useLang } from "../../context/LanguageContext";
 import {
   ChatBubbleLeftRightIcon,
   ClipboardDocumentListIcon,
@@ -11,19 +12,20 @@ import {
   MusicalNoteIcon,
 } from "@heroicons/react/24/outline";
 
-const NAV = [
-  { id: "chat",    label: "Chat",     icon: ChatBubbleLeftRightIcon },
-  { id: "logs",    label: "Check-in", icon: ClipboardDocumentListIcon },
-  { id: "study",   label: "Study",    icon: ClockIcon },
-  { id: "music",   label: "Music",    icon: MusicalNoteIcon },
-  { id: "trends",  label: "Trends",   icon: PresentationChartLineIcon },
-  { id: "journal", label: "Journal",  icon: BookOpenIcon },
-  { id: "calendar",label: "Calendar", icon: CalendarDaysIcon },
-];
-
 export default function Sidebar({ active, onChange }) {
   const { user } = useAuth();
+  const { t } = useLang();
   const personaColor = user?.persona === "cleo" ? "#845a5a" : "#5a845f";
+
+  const NAV = [
+    { id: "chat",     label: t("chat"),     icon: ChatBubbleLeftRightIcon },
+    { id: "logs",     label: t("checkin"),  icon: ClipboardDocumentListIcon },
+    { id: "study",    label: t("study"),    icon: ClockIcon },
+    { id: "music",    label: t("music"),    icon: MusicalNoteIcon },
+    { id: "trends",   label: t("trends"),   icon: PresentationChartLineIcon },
+    { id: "journal",  label: t("journal"),  icon: BookOpenIcon },
+    { id: "calendar", label: t("calendar"), icon: CalendarDaysIcon },
+  ];
 
   return (
     <aside className="w-20 lg:w-56 h-screen flex flex-col bg-white border-r border-cream-200 py-6 flex-shrink-0">
@@ -63,7 +65,7 @@ export default function Sidebar({ active, onChange }) {
           className={`w-full flex items-center gap-0 lg:gap-3 px-0 lg:px-3 py-3 rounded-xl justify-center lg:justify-start transition-all ${
             active === "settings" ? "bg-sage-50 text-sage-700" : "text-stone-400 hover:text-stone-600 hover:bg-cream-100"}`}>
           <Cog6ToothIcon className="w-5 h-5 flex-shrink-0" />
-          <span className="hidden lg:block font-body text-sm">Settings</span>
+          <span className="hidden lg:block font-body text-sm">{t("settings")}</span>
         </motion.button>
       </div>
     </aside>
