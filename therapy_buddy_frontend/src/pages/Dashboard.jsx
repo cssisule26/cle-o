@@ -8,8 +8,9 @@ import Trends from "../components/shared/Trends";
 import Journal from "../components/journal/Journal";
 import Calendar from "../components/calendar/Calendar";
 import Settings from "../components/shared/Settings";
+import MusicGen from "../components/music/musicgen";
 
-const TABS = { chat: ChatBox, logs: DailyLogs, study: StudyMode, trends: Trends, journal: Journal, calendar: Calendar, settings: Settings };
+const TABS = { chat: ChatBox, logs: DailyLogs, study: StudyMode, music: MusicGen, trends: Trends, journal: Journal, calendar: Calendar, settings: Settings };
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("chat");

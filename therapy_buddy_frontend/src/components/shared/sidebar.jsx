@@ -8,15 +8,17 @@ import {
   PresentationChartLineIcon,
   ClockIcon,
   Cog6ToothIcon,
+  MusicalNoteIcon,
 } from "@heroicons/react/24/outline";
 
 const NAV = [
-  { id: "chat", label: "Chat", icon: ChatBubbleLeftRightIcon },
-  { id: "logs", label: "Check-in", icon: ClipboardDocumentListIcon },
-  { id: "study", label: "Study", icon: ClockIcon },
-  { id: "trends", label: "Trends", icon: PresentationChartLineIcon },
-  { id: "journal", label: "Journal", icon: BookOpenIcon },
-  { id: "calendar", label: "Calendar", icon: CalendarDaysIcon },
+  { id: "chat",    label: "Chat",     icon: ChatBubbleLeftRightIcon },
+  { id: "logs",    label: "Check-in", icon: ClipboardDocumentListIcon },
+  { id: "study",   label: "Study",    icon: ClockIcon },
+  { id: "music",   label: "Music",    icon: MusicalNoteIcon },
+  { id: "trends",  label: "Trends",   icon: PresentationChartLineIcon },
+  { id: "journal", label: "Journal",  icon: BookOpenIcon },
+  { id: "calendar",label: "Calendar", icon: CalendarDaysIcon },
 ];
 
 export default function Sidebar({ active, onChange }) {
