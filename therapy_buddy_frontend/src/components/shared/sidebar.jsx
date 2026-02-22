@@ -10,6 +10,7 @@ import {
   ClockIcon,
   Cog6ToothIcon,
   MusicalNoteIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
 
 export default function Sidebar({ active, onChange }) {
@@ -25,6 +26,7 @@ export default function Sidebar({ active, onChange }) {
     { id: "trends",   label: t("trends"),   icon: PresentationChartLineIcon },
     { id: "journal",  label: t("journal"),  icon: BookOpenIcon },
     { id: "calendar", label: t("calendar"), icon: CalendarDaysIcon },
+    { id: "report",   label: t("report"),        icon: SparklesIcon },
   ];
 
   return (

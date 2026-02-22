@@ -9,6 +9,7 @@ import Journal from "../components/journal/Journal";
 import Calendar from "../components/calendar/Calendar";
 import Settings from "../components/shared/Settings";
 import MusicGen from "../components/music/MusicGen";
+import WeeklyReport from "../components/report/WeeklyReport";
 import LanguageSwitcher from "../components/shared/LanguageSwitcher";
 
 const TABS = {
@@ -20,6 +21,7 @@ const TABS = {
   journal: Journal,
   calendar: Calendar,
   settings: Settings,
+  report: WeeklyReport,
 };
 
 export default function Dashboard() {

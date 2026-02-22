@@ -1,3 +1,4 @@
+// @refresh reset
 import { createContext, useContext, useState } from "react";
 
 const TRANSLATIONS = {
@@ -12,6 +13,7 @@ const TRANSLATIONS = {
     trends: "Trends",
     journal: "Journal",
     calendar: "Calendar",
+    report: "Report",
     settings: "Settings",
     // Dashboard / general
     good_morning: "Good morning",
@@ -131,6 +133,7 @@ const TRANSLATIONS = {
     trends: "Tendencias",
     journal: "Diario",
     calendar: "Calendario",
+    report: "Reporte",
     settings: "Ajustes",
     good_morning: "Buenos días",
     good_afternoon: "Buenas tardes",
@@ -240,6 +243,7 @@ const TRANSLATIONS = {
     trends: "Tendances",
     journal: "Journal",
     calendar: "Calendrier",
+    report: "Rapport", 
     settings: "Paramètres",
     good_morning: "Bonjour",
     good_afternoon: "Bon après-midi",
@@ -349,6 +353,7 @@ const TRANSLATIONS = {
     trends: "趋势",
     journal: "日记",
     calendar: "日历",
+    report: "报告",
     settings: "设置",
     good_morning: "早上好",
     good_afternoon: "下午好",

@@ -210,7 +210,10 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-.db
+*.db
+*.json
+*.js
+
 
 # Marimo
 marimo/_static/
