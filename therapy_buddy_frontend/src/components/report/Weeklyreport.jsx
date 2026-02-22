@@ -37,7 +37,7 @@ const DEMO_DATA = {
     { role: "user",      text: "I'm really stressed about my biology exam next week." },
     { role: "assistant", text: "Let's break it down into smaller pieces. What topic feels hardest right now?" },
     { role: "user",      text: "Cell respiration. I keep mixing up the steps." },
-    { role: "assistant", text: "Try drawing the process by hand — it helps cement the sequence. You've shown great consistency this week!" },
+    { role: "assistant", text: "Try drawing the process by hand, it helps cement the sequence. You've shown great consistency this week!" },
     { role: "user",      text: "I've been sleeping better though, that's something." },
     { role: "assistant", text: "Definitely! Your sleep averaged 7.2 hours — that's really solid and it's helping your mood trend upward." },
     { role: "user",      text: "Felt super unmotivated on Tuesday though." },
